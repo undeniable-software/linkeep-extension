@@ -1,0 +1,12 @@
+# Ignore build output
+/output/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore lock files
+package-lock.json
+
+.DS_Store
+.output/
+.wxt/
