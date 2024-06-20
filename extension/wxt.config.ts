@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   srcDir: 'src',
   entrypointsDir: 'entries',
+  manifest: {
+    permissions: ['activeTab', 'webRequest'],
+  },
   vite: () => ({
     plugins: [react()],
   }),
