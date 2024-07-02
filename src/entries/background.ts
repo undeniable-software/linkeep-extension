@@ -63,3 +63,8 @@ function parseURL(url: string): URL {
     throw new Error('Invalid URL, Error: ' + error);
   }
 }
+
+function sendToClassifcationAPI(URL: URL) {
+  // Send URL to classification API
+  // Return classification
+}
