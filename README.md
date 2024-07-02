@@ -1,2 +1,2 @@
 # linkeep
-repo for linkeep (extension, web app, api)
+repo for linkeep extension
