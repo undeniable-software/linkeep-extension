@@ -1,4 +1,5 @@
 import React from 'react';
+import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import './style.css';
 
@@ -16,7 +17,20 @@ const router = createHashRouter([
   {
     element: <RootLayout />,
     children: [
-      { path: '/', element: <Index /> },
+      {
+        path: '/',
+        element: (
+          <Suspense
+            fallback={
+              <div className="flex justify-center items-center h-full">
+                Loading...
+              </div>
+            }
+          >
+            <Index />
+          </Suspense>
+        ),
+      },
       { path: '/sign-in', element: <SignInPage /> },
       { path: '/sign-up', element: <SignUpPage /> },
     ],

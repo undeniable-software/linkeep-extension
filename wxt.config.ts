@@ -1,5 +1,6 @@
 import { defineConfig } from 'wxt';
 import react from '@vitejs/plugin-react';
+import MillionLint from '@million/lint';
 
 const apiUrl = import.meta.env.LINKEEP_API_URL;
 
@@ -7,6 +8,7 @@ const apiUrl = import.meta.env.LINKEEP_API_URL;
 export default defineConfig({
   srcDir: 'src',
   entrypointsDir: 'entries',
+
   manifest: {
     permissions: ['activeTab', 'webRequest', 'cookies', 'storage'],
     host_permissions: [apiUrl + '/*'],
