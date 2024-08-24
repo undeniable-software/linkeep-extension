@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { SaveMessage } from '@/entries/background';
 
 export const Index = () => {
@@ -40,6 +40,7 @@ export const Index = () => {
           </CardDescription>
           <div className="flex justify-center space-x-4">
             <Button
+              size="lg"
               onClick={() => {
                 browser.tabs.create({
                   url: browser.runtime.getURL('/popup.html#/sign-in'),
@@ -47,15 +48,6 @@ export const Index = () => {
               }}
             >
               Sign In
-            </Button>
-            <Button
-              onClick={() => {
-                browser.tabs.create({
-                  url: browser.runtime.getURL('/popup.html#/sign-up'),
-                });
-              }}
-            >
-              Sign Up
             </Button>
           </div>
         </SignedOut>
@@ -73,17 +65,43 @@ export const Index = () => {
   );
 };
 
+const subscriptionCheck = async () => {
+  interface SubscriptionCheckResponse {
+    isSubscribed: boolean;
+  }
+
+  const response = await fetch(
+    `${import.meta.env.VITE_LINKEEP_API_URL}/subscriptionCheck`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  const data: SubscriptionCheckResponse = await response.json();
+  return data.isSubscribed;
+};
+
 const MainView = () => {
   const { getToken } = useAuth();
-
-  const FEATURE_FLAG_INTENT = false; // Set to true to enable intent feature
-
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [link, setLink] = useState('');
   const [showInput, setShowInput] = useState(false);
   const [intent, setIntent] = useState('');
   const [mode, setMode] = useState(''); // 'page' or 'link'
   const [statusMessage, setStatusMessage] = useState(''); // New state for status message
   const [isSuccess, setIsSuccess] = useState(false); // New state for success status
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      const subscribed = await subscriptionCheck();
+      setIsSubscribed(subscribed);
+    };
+    checkSubscription();
+  }, []);
+
+  const FEATURE_FLAG_INTENT = false; // Set to true to enable intent feature
 
   function handleButtonClick(mode: string) {
     setMode(mode);
@@ -127,7 +145,7 @@ const MainView = () => {
     setLink('');
   }
 
-  return (
+  return isSubscribed ? (
     <div className="space-y-4">
       <CardDescription className="text-xs text-center">
         {FEATURE_FLAG_INTENT
@@ -200,6 +218,20 @@ const MainView = () => {
           {statusMessage}
         </div>
       )}
+    </div>
+  ) : (
+    <div className="space-y-4">
+      <CardDescription className="text-xs text-center">
+        You're not subscribed to Linkeep. Please{' '}
+        <a
+          className="underline hover:text-blue-500"
+          href="https://mylinkeep.com/#pricing"
+          target="_blank"
+        >
+          subscribe
+        </a>{' '}
+        to use the extension to save links.
+      </CardDescription>
     </div>
   );
 };

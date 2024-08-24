@@ -2,7 +2,7 @@
   "name": "linkeep-extension",
   "description": "Linkeep browser extension",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "wxt",

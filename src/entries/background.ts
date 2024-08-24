@@ -15,6 +15,20 @@ interface ClassificationResponse {
   success: boolean;
 }
 
+class URLRetrievalError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'URLRetrievalError';
+  }
+}
+
+class ClassificationAPIError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ClassificationAPIError';
+  }
+}
+
 export default defineBackground(async () => {
   browser.runtime.onMessage.addListener(
     async (message: SaveMessage & { token: string }, sendResponse) => {
@@ -78,7 +92,7 @@ async function getCurrentTabURL(): Promise<URL | null> {
       currentWindow: true,
     });
     if (tabs.length === 0 || !tabs[0].url) {
-      throw new Error('No active tab or URL found.');
+      throw new URLRetrievalError('No active tab or URL found.');
     }
     return parseURL(tabs[0].url);
   } catch (error) {
@@ -94,43 +108,41 @@ function parseURL(url: string): URL {
   try {
     return new URL(url);
   } catch (error) {
-    throw new Error(`Invalid URL: ${error}`);
+    throw new URLRetrievalError(`Invalid URL: ${error}`);
   }
 }
 
-async function sendToClassificationAPI(URL: URL, token: string) {
+async function sendToClassificationAPI(
+  URL: URL,
+  token: string
+): Promise<ClassificationResponse> {
   try {
     if (!token || token === '') {
-      throw new Error('Token not provided');
+      throw new ClassificationAPIError('Token not provided');
     }
 
     console.log('Sending URL to classification API:', URL.href);
 
-    const apiUrl = import.meta.env.LINKEEP_API_URL;
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ url: URL.href, title: URL.hostname }),
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_LINKEEP_API_URL}/classify`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ url: URL.href }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
+      throw new ClassificationAPIError(
         `Failed to classify URL: ${response.status} ${response.statusText}. ${errorText}`
       );
     }
 
-    // console.log(
-    //   'Classification API response:',
-    //   response.status,
-    //   response.statusText
-    // );
-
     const data = await response.json();
-    // console.log(data);
     return data as ClassificationResponse;
   } catch (error) {
     console.error('Error in sendToClassificationAPI:', error);
