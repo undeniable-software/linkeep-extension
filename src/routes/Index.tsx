@@ -19,6 +19,11 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import type { SaveMessage } from '@/entries/background';
 
+const API_URL = `${import.meta.env.VITE_LINKEEP_API_URL}/subscription-check`;
+const SUCCESS_MESSAGE = 'Save successful!';
+const FAILURE_MESSAGE = 'Save failed. Please try again.';
+const FEATURE_FLAG_INTENT = false;
+
 export const Index = () => {
   return (
     <Card className="w-[250px] rounded-none">
@@ -65,20 +70,17 @@ export const Index = () => {
   );
 };
 
-const subscriptionCheck = async () => {
+const subscriptionCheck = async (token: string) => {
   interface SubscriptionCheckResponse {
     isSubscribed: boolean;
   }
-
-  const response = await fetch(
-    `${import.meta.env.VITE_LINKEEP_API_URL}/subscriptionCheck`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
   const data: SubscriptionCheckResponse = await response.json();
   return data.isSubscribed;
 };
@@ -86,73 +88,93 @@ const subscriptionCheck = async () => {
 const MainView = () => {
   const { getToken } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [link, setLink] = useState('');
-  const [showInput, setShowInput] = useState(false);
-  const [intent, setIntent] = useState('');
-  const [mode, setMode] = useState(''); // 'page' or 'link'
-  const [statusMessage, setStatusMessage] = useState(''); // New state for status message
-  const [isSuccess, setIsSuccess] = useState(false); // New state for success status
+  const [formState, setFormState] = useState({
+    showInput: false,
+    intent: '',
+    link: '',
+    mode: '',
+  });
+  const [statusMessage, setStatusMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const checkSubscription = async () => {
+    const token = await getToken?.();
+    if (token) {
+      const subscribed = await subscriptionCheck(token);
+      setIsSubscribed(subscribed);
+    }
+  };
 
   useEffect(() => {
-    const checkSubscription = async () => {
-      const subscribed = await subscriptionCheck();
-      setIsSubscribed(subscribed);
-    };
     checkSubscription();
-  }, []);
-
-  const FEATURE_FLAG_INTENT = false; // Set to true to enable intent feature
+  }, [getToken]);
 
   function handleButtonClick(mode: string) {
-    setMode(mode);
-    setShowInput(true);
+    setFormState((prevState) => ({
+      ...prevState,
+      showInput: true,
+      mode,
+    }));
   }
 
   function handleBackButtonClick() {
-    setShowInput(false);
-    setIntent('');
-    setLink('');
-    setMode('');
-    setStatusMessage(''); // Clear status message on back
+    setFormState({
+      showInput: false,
+      intent: '',
+      link: '',
+      mode: '',
+    });
+    setStatusMessage('');
   }
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormState((prevState) => ({
+      ...prevState,
+      [e.target.id]: e.target.value,
+    }));
+  };
+
   async function handleSubmit() {
-    const token = await getToken();
-
-    let message: SaveMessage = {
-      mode: mode === 'link' ? 'urlProvided' : 'currentPage',
-      URL: mode === 'link' ? link : undefined,
-      intent: FEATURE_FLAG_INTENT ? intent : undefined,
-    };
-
     try {
+      const token = await getToken();
+
+      const message: SaveMessage = {
+        mode: formState.mode === 'link' ? 'urlProvided' : 'currentPage',
+        URL: formState.mode === 'link' ? formState.link : undefined,
+        intent: FEATURE_FLAG_INTENT ? formState.intent : undefined,
+      };
+
       const response = await browser.runtime.sendMessage({ ...message, token });
+
       if (response) {
-        setStatusMessage('Save successful!'); // Success message
-        setIsSuccess(true); // Set success status
+        setStatusMessage(SUCCESS_MESSAGE);
+        setIsSuccess(true);
       } else {
-        setStatusMessage('Save failed. Please try again.'); // Error message
-        setIsSuccess(false); // Set failure status
+        setStatusMessage(FAILURE_MESSAGE);
+        setIsSuccess(false);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      setStatusMessage('Save failed. Please try again.'); // Error message
-      setIsSuccess(false); // Set failure status
+      setStatusMessage(FAILURE_MESSAGE);
+      setIsSuccess(false);
+    } finally {
+      setFormState({
+        showInput: false,
+        intent: '',
+        link: '',
+        mode: '',
+      });
     }
-
-    setShowInput(false);
-    setIntent('');
-    setLink('');
   }
 
   return isSubscribed ? (
     <div className="space-y-4">
       <CardDescription className="text-xs text-center">
         {FEATURE_FLAG_INTENT
-          ? 'Save this page or a link with a note about why to help linkeep organize it for you.'
-          : 'Save this page or a link so linkeep can organize it for you.'}
+          ? 'Save this page or a link with a note about why to help Linkeep organize it for you.'
+          : 'Save this page or a link so Linkeep can organize it for you.'}
       </CardDescription>
-      {!showInput ? (
+      {!formState.showInput ? (
         <div className="space-y-2">
           <Button className="w-full" onClick={() => handleButtonClick('page')}>
             <span role="img" aria-label="page" className="mr-2">
@@ -175,19 +197,19 @@ const MainView = () => {
               <Input
                 id="intent"
                 placeholder="Enter your intent..."
-                value={intent}
-                onChange={(e) => setIntent(e.target.value)}
+                value={formState.intent}
+                onChange={handleInputChange}
               />
             </div>
           )}
-          {mode === 'link' && (
+          {formState.mode === 'link' && (
             <div className="space-y-2">
               <Label htmlFor="link">Enter URL</Label>
               <Input
                 id="link"
                 placeholder="https://example.com"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
+                value={formState.link}
+                onChange={handleInputChange}
               />
             </div>
           )}

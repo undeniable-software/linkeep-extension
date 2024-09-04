@@ -10,7 +10,7 @@ export default defineConfig({
 
   manifest: {
     permissions: ['activeTab'],
-    host_permissions: [apiUrl + '/'],
+    host_permissions: ['https://linkeep-api.onrender.com'],
     web_accessible_resources: [
       {
         matches: ['<all_urls>'],
