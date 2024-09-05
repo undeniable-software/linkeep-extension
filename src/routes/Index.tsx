@@ -18,6 +18,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import type { SaveMessage } from '@/entries/background';
+import { getSubscriptionToken, decodeToken } from '@/lib/utils';
 
 const API_URL = `${import.meta.env.VITE_LINKEEP_API_URL}/subscription-check`;
 const SUCCESS_MESSAGE = 'Save successful!';
@@ -70,24 +71,25 @@ export const Index = () => {
   );
 };
 
-const subscriptionCheck = async (token: string) => {
-  interface SubscriptionCheckResponse {
-    isSubscribed: boolean;
-  }
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  const data: SubscriptionCheckResponse = await response.json();
-  return data.isSubscribed;
-};
+// const subscriptionCheck = async (token: string) => {
+//   interface SubscriptionCheckResponse {
+//     isSubscribed: boolean;
+//   }
+//   const response = await fetch(API_URL, {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/json',
+//       Authorization: `Bearer ${token}`,
+//     },
+//   });
+//   const data: SubscriptionCheckResponse = await response.json();
+//   return data.isSubscribed;
+// };
 
 const MainView = () => {
   const { getToken } = useAuth();
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(true); // Assume subscribed by default
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [formState, setFormState] = useState({
     showInput: false,
     intent: '',
@@ -97,17 +99,45 @@ const MainView = () => {
   const [statusMessage, setStatusMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const checkSubscription = async () => {
+  const getClerkAuthToken = async () => {
     const token = await getToken?.();
-    if (token) {
-      const subscribed = await subscriptionCheck(token);
-      setIsSubscribed(subscribed);
-    }
+    return token;
   };
 
   useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const clerkAuthToken = await getClerkAuthToken();
+        if (!clerkAuthToken) {
+          throw new Error('Clerk auth token is null');
+        }
+        const token = await getSubscriptionToken(clerkAuthToken);
+        // Assuming the token contains subscription status
+        const { subscriptionStatus } = decodeToken(token);
+
+        setIsSubscribed(subscriptionStatus);
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setIsSubscribed(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     checkSubscription();
-  }, [getToken]);
+  }, []);
+
+  // const checkSubscription = async () => {
+  //   const token = await getToken?.();
+  //   if (token) {
+  //     const subscribed = await subscriptionCheck(token);
+  //     setIsSubscribed(subscribed);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   checkSubscription();
+  // }, [getToken]);
 
   function handleButtonClick(mode: string) {
     setFormState((prevState) => ({
@@ -167,7 +197,9 @@ const MainView = () => {
     }
   }
 
-  return isSubscribed ? (
+  return isLoading ? (
+    <div>Loading...</div>
+  ) : isSubscribed ? (
     <div className="space-y-4">
       <CardDescription className="text-xs text-center">
         {FEATURE_FLAG_INTENT

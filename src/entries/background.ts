@@ -2,7 +2,7 @@ export interface SaveMessage {
   mode: string;
   URL?: string;
   intent?: string;
-  token?: string;
+  clerkAuthToken?: string;
 }
 
 interface ClassificationResponse {
@@ -29,10 +29,13 @@ class ClassificationAPIError extends Error {
   }
 }
 
+import { getSubscriptionToken } from '@/lib/utils';
+
 export default defineBackground(async () => {
   browser.runtime.onMessage.addListener(
-    async (message: SaveMessage & { token: string }, sendResponse) => {
-      const { token, ...saveMessage } = message;
+    async (message: SaveMessage & { clerkAuthToken: string }, sendResponse) => {
+      const { clerkAuthToken, ...saveMessage } = message;
+      await getSubscriptionToken(clerkAuthToken);
 
       try {
         let classificationResponse: ClassificationResponse | null = null;
@@ -43,7 +46,7 @@ export default defineBackground(async () => {
             if (URL) {
               classificationResponse = await sendToClassificationAPI(
                 URL,
-                token
+                clerkAuthToken
               );
             } else {
               console.error('Failed to retrieve current tab URL.');
@@ -59,7 +62,7 @@ export default defineBackground(async () => {
               const URL = parseURL(message.URL);
               classificationResponse = await sendToClassificationAPI(
                 URL,
-                token
+                clerkAuthToken
               );
             } catch (error) {
               console.error('Error parsing provided URL:', error);
@@ -114,11 +117,11 @@ function parseURL(url: string): URL {
 
 async function sendToClassificationAPI(
   URL: URL,
-  token: string
+  clerkAuthToken: string
 ): Promise<ClassificationResponse> {
   try {
-    if (!token || token === '') {
-      throw new ClassificationAPIError('Token not provided');
+    if (!clerkAuthToken || clerkAuthToken === '') {
+      throw new ClassificationAPIError('clerkAuthToken not provided');
     }
 
     console.log('Sending URL to classification API:', URL.href);
@@ -129,7 +132,7 @@ async function sendToClassificationAPI(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${clerkAuthToken}`,
         },
         body: JSON.stringify({ url: URL.href }),
       }
