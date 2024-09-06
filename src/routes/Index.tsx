@@ -166,7 +166,7 @@ const MainView = () => {
 
   async function handleSubmit() {
     try {
-      const token = await getToken();
+      const clerkAuthToken = await getClerkAuthToken();
 
       const message: SaveMessage = {
         mode: formState.mode === 'link' ? 'urlProvided' : 'currentPage',
@@ -174,7 +174,10 @@ const MainView = () => {
         intent: FEATURE_FLAG_INTENT ? formState.intent : undefined,
       };
 
-      const response = await browser.runtime.sendMessage({ ...message, token });
+      const response = await browser.runtime.sendMessage({
+        ...message,
+        clerkAuthToken,
+      });
 
       if (response) {
         setStatusMessage(SUCCESS_MESSAGE);

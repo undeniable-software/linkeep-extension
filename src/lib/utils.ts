@@ -15,7 +15,7 @@ export function cn(...inputs: ClassValue[]) {
 const SUBSCRIPTION_TOKEN_KEY = 'subscriptionToken';
 
 export const setSubscriptionToken = async (token: string): Promise<void> => {
-  localStorage.setItem(SUBSCRIPTION_TOKEN_KEY, token);
+  await browser.storage.local.set({ [SUBSCRIPTION_TOKEN_KEY]: token });
 };
 
 export const isTokenValid = async (token: string): Promise<boolean> => {
@@ -72,9 +72,10 @@ export function isTokenExpired(token: string): boolean {
 export async function getSubscriptionToken(
   clerkAuthToken: string
 ): Promise<string> {
-  const storedToken = localStorage.getItem(SUBSCRIPTION_TOKEN_KEY);
-  if (storedToken && !isTokenExpired(storedToken)) {
-    return storedToken;
+  const storedToken = await browser.storage.local.get(SUBSCRIPTION_TOKEN_KEY);
+  const tokenValue = storedToken[SUBSCRIPTION_TOKEN_KEY];
+  if (tokenValue && !isTokenExpired(tokenValue)) {
+    return tokenValue;
   }
 
   const response = await fetch(
@@ -93,6 +94,6 @@ export async function getSubscriptionToken(
   }
 
   const data = await response.json();
-  localStorage.setItem(SUBSCRIPTION_TOKEN_KEY, data.token);
+  await browser.storage.local.set({ [SUBSCRIPTION_TOKEN_KEY]: data.token });
   return data.token;
 }
