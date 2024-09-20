@@ -9,8 +9,12 @@ export default defineConfig({
   entrypointsDir: 'entries',
 
   manifest: {
-    permissions: ['activeTab', 'storage'],
-    host_permissions: ['https://linkeep-api.onrender.com'],
+    permissions: ['activeTab', 'storage', 'cookies'],
+    host_permissions: [
+      'https://mylinkeep.com/*',
+      'https://linkeep-api.onrender.com',
+      'https://clerk.mylinkeep.com/*',
+    ],
     web_accessible_resources: [
       {
         matches: ['<all_urls>'],

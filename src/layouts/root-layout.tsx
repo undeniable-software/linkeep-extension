@@ -1,5 +1,10 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ClerkProvider, SignedIn, SignedOut } from '@clerk/chrome-extension';
+import {
+  ClerkProvider,
+  SignedIn,
+  SignedOut,
+  SignInButton,
+} from '@clerk/chrome-extension';
 import { useCallback } from 'react';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -23,16 +28,11 @@ export const RootLayout = () => {
       routerPush={routerPush}
       routerReplace={routerReplace}
       publishableKey={PUBLISHABLE_KEY}
-      signInForceRedirectUrl={'/popup.html#/sign-in'}
-      signUpForceRedirectUrl={'/popup.html#/sign-up'}
+      syncSessionWithTab
     >
-      <main className="main">
+      <main>
         <Outlet />
       </main>
-      <footer className="footer">
-        <SignedIn>{/* Ensure SignedIn component is optimized */}</SignedIn>
-        <SignedOut>{/* Ensure SignedOut component is optimized */}</SignedOut>
-      </footer>
     </ClerkProvider>
   );
 };
